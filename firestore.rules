@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isStylist() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Who the stylist is. Only editable from the Firebase console.
+    match /admins/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Public read so the booking page can render services and hours.
+    match /services/{id}   { allow read: if true; allow write: if isStylist(); }
+    match /settings/{id}   { allow read: if true; allow write: if isStylist(); }
+    match /blackouts/{id}  { allow read: if true; allow write: if isStylist(); }
+
+    // Slot occupancy with no personal data -- safe to expose so clients can
+    // see what is taken without seeing who took it.
+    match /busy/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.start is timestamp
+        && request.resource.data.end is timestamp
+        && request.resource.data.start < request.resource.data.end;
+      allow update, delete: if isStylist();
+    }
+
+    // Names, phones, and notes. Readable only by the stylist and by whoever
+    // created the request.
+    match /appointments/{id} {
+      allow read: if isStylist() || (signedIn() && resource.data.createdBy == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.clientName is string
+        && request.resource.data.clientName.size() > 0
+        && request.resource.data.clientName.size() < 120
+        && request.resource.data.clientPhone.size() < 40
+        && request.resource.data.notes.size() < 500
+        && request.resource.data.start is timestamp
+        && request.resource.data.end is timestamp
+        && request.resource.data.start < request.resource.data.end;
+      allow update, delete: if isStylist();
+    }
+  }
+}
