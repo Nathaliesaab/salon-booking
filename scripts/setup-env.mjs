@@ -9,7 +9,7 @@
  * Accepts the whole `const firebaseConfig = { ... };` snippet or just the
  * object -- it reads the keys out either way.
  */
-import { writeFileSync, existsSync, copyFileSync } from 'node:fs'
+import { writeFileSync, existsSync, copyFileSync, readFileSync } from 'node:fs'
 
 const FIELDS = {
   apiKey: 'VITE_FB_API_KEY',
@@ -41,10 +41,19 @@ if (missing.length === Object.keys(FIELDS).length) {
 }
 if (missing.length) console.warn(`Warning: no value found for ${missing.join(', ')}`)
 
-if (existsSync('.env.local')) copyFileSync('.env.local', '.env.local.bak')
+// Anything already in .env.local that is not part of the Firebase config
+// (VITE_STYLIST_UIDS, for one) has to survive a rewrite.
+let extras = []
+if (existsSync('.env.local')) {
+  copyFileSync('.env.local', '.env.local.bak')
+  const owned = new Set(Object.values(FIELDS))
+  extras = readFileSync('.env.local', 'utf8')
+    .split('\n')
+    .filter((line) => line.trim() && !owned.has(line.split('=')[0].trim()))
+}
 
-const body = Object.entries(FIELDS).map(([key, env]) => `${env}=${found[key] ?? ''}`).join('\n')
-writeFileSync('.env.local', body + '\n')
+const body = Object.entries(FIELDS).map(([key, env]) => `${env}=${found[key] ?? ''}`)
+writeFileSync('.env.local', [...body, ...extras].join('\n') + '\n')
 
 console.log('Wrote .env.local:')
 console.log(`  project: ${found.projectId}`)

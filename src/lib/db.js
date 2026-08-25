@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { BUSY_STATUSES, dateKey, keyToDate } from './schedule'
+import { STYLIST_UIDS } from './config'
 
 // Built on demand rather than at import time, so this module can be imported
 // safely in demo mode, where `db` is null and none of these are ever called.
@@ -13,6 +14,7 @@ const blackoutsRef = () => collection(db, 'blackouts')
 // Personal-data-free mirror of every slot-holding appointment. Clients may read
 // this to see what is taken; only the stylist may read `appointments` itself.
 const busyRef = () => collection(db, 'busy')
+const reviewsRef = () => collection(db, 'reviews')
 const scheduleDoc = () => doc(db, 'settings', 'schedule')
 
 export const DEFAULT_SCHEDULE = {
@@ -158,7 +160,40 @@ export function saveService(service) {
   return id ? setDoc(doc(db, 'services', id), rest, { merge: true }) : addDoc(servicesRef(), rest)
 }
 
+/** Newest first. Hidden reviews are filtered client-side so one query serves both sides. */
+export function watchReviews(callback) {
+  return onSnapshot(query(reviewsRef(), orderBy('createdAt', 'desc')), (snap) =>
+    callback(snap.docs.map((d) => {
+      const data = d.data()
+      return { id: d.id, ...data, createdAt: data.createdAt?.toDate?.() ?? null }
+    }))
+  )
+}
+
+export function addReview({ name, rating, text, serviceName, uid }) {
+  return addDoc(reviewsRef(), {
+    name: name.trim(),
+    rating: Number(rating),
+    text: text.trim(),
+    serviceName: serviceName || '',
+    hidden: false,
+    createdBy: uid,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const setReviewHidden = (id, hidden) => updateDoc(doc(db, 'reviews', id), { hidden })
+export const deleteReview = (id) => deleteDoc(doc(db, 'reviews', id))
+
 export const deleteService = (id) => deleteDoc(doc(db, 'services', id))
 export const addBlackout = (day, reason) => setDoc(doc(db, 'blackouts', dateKey(day)), { reason })
 export const removeBlackout = (id) => deleteDoc(doc(db, 'blackouts', id))
-export const isAdmin = async (uid) => (await getDoc(doc(db, 'admins', uid))).exists()
+/** Allowlisted UID, or a document in /admins -- same two paths as the rules. */
+export async function isAdmin(uid) {
+  if (STYLIST_UIDS.includes(uid)) return true
+  try {
+    return (await getDoc(doc(db, 'admins', uid))).exists()
+  } catch {
+    return false
+  }
+}

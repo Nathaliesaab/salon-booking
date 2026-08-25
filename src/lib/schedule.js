@@ -84,3 +84,24 @@ export function findConflicts(candidate, appointments, { ignoreId } = {}) {
       overlaps(candidate.start, candidate.end, a.start, a.end)
   )
 }
+
+/**
+ * Could this day hold any appointment at all? Used by the calendar to grey out
+ * days before the (much more expensive) per-day slot query runs.
+ */
+export function isDayOpen(day, schedule, closedKeys = new Set(), now = new Date()) {
+  if (!schedule) return false
+  const today = new Date(now); today.setHours(0, 0, 0, 0)
+  if (day < today) return false
+  if (closedKeys.has(dateKey(day))) return false
+  const windows = schedule.weekly?.[String(day.getDay())] ?? []
+  return windows.length > 0
+}
+
+/** Morning / Afternoon / Evening — slots read better on a phone when grouped. */
+export function partOfDay(date) {
+  const h = date.getHours()
+  if (h < 12) return 'Morning'
+  if (h < 17) return 'Afternoon'
+  return 'Evening'
+}

@@ -5,6 +5,7 @@ import DayTab from './admin/DayTab'
 import LogTab from './admin/LogTab'
 import ServicesTab from './admin/ServicesTab'
 import HoursTab from './admin/HoursTab'
+import ReviewsTab from './admin/ReviewsTab'
 import { useAuth } from '../lib/useAuth'
 import { watchAppointmentsFrom, watchBlackouts, watchSchedule, watchServices } from '../lib/backend'
 
@@ -55,6 +56,7 @@ export default function AdminPage() {
     ['log', 'Log'],
     ['services', 'Services'],
     ['hours', 'Hours'],
+    ['reviews', 'Reviews'],
   ]
 
   return (
@@ -73,6 +75,7 @@ export default function AdminPage() {
       {tab === 'log' && <LogTab appointments={appointments} />}
       {tab === 'services' && <ServicesTab services={services} />}
       {tab === 'hours' && <HoursTab schedule={schedule} blackouts={blackouts} />}
+      {tab === 'reviews' && <ReviewsTab />}
     </div>
   )
 }

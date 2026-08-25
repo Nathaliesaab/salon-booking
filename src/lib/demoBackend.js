@@ -34,6 +34,17 @@ const SEED = {
   schedule: DEFAULT_SCHEDULE,
   blackouts: [],
   appointments: [],
+  reviews: [
+    { id: 'r1', name: 'Rania K.', rating: 5, serviceName: 'Balayage', hidden: false,
+      text: 'I have never had a colour match my brief so exactly. Nine years of salons and this is the first time I did not need to explain it twice.',
+      createdAt: '2026-07-14T10:00:00.000Z' },
+    { id: 'r2', name: 'Dana M.', rating: 5, serviceName: 'Cut & blow dry', hidden: false,
+      text: 'Booked on my phone at midnight and it was confirmed by morning. The easiest salon I have ever dealt with.',
+      createdAt: '2026-07-29T18:30:00.000Z' },
+    { id: 'r3', name: 'Leen A.', rating: 5, serviceName: 'Roots colour', hidden: false,
+      text: 'She talked me out of the cut I asked for and gave me a better one. I am still thanking her.',
+      createdAt: '2026-08-11T15:05:00.000Z' },
+  ],
 }
 
 // Dates do not survive JSON, so they are stored as ISO strings and revived.
@@ -178,6 +189,43 @@ export async function addBlackout(day, reason) {
 
 export async function removeBlackout(id) {
   write((state) => { state.blackouts = state.blackouts.filter((b) => b.id !== id) })
+}
+
+export function watchReviews(callback) {
+  return subscribe(() =>
+    callback(read().reviews.map(revive).sort((a, b) => b.createdAt - a.createdAt))
+  )
+}
+
+export async function addReview({ name, rating, text, serviceName, uid }) {
+  const id = `r${Date.now()}`
+  write((state) => {
+    state.reviews = [
+      ...(state.reviews ?? []),
+      {
+        id,
+        name: name.trim(),
+        rating: Number(rating),
+        text: text.trim(),
+        serviceName: serviceName || '',
+        hidden: false,
+        createdBy: uid ?? 'demo',
+        createdAt: new Date().toISOString(),
+      },
+    ]
+  })
+  return { id }
+}
+
+export async function setReviewHidden(id, hidden) {
+  write((state) => {
+    const row = (state.reviews ?? []).find((r) => r.id === id)
+    if (row) row.hidden = hidden
+  })
+}
+
+export async function deleteReview(id) {
+  write((state) => { state.reviews = (state.reviews ?? []).filter((r) => r.id !== id) })
 }
 
 export async function isAdmin() { return true }

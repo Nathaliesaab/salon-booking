@@ -4,11 +4,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+
+    // Whoever runs the salon. Two ways to be listed, either is enough:
+    //   1. a UID in this list -- edit and redeploy to change it
+    //   2. a document in /admins whose ID is the UID
+    // The list avoids depending on the Firestore console's collection dialog,
+    // which is easy to get wrong. To hand the app over, add her UID here and
+    // run: firebase deploy --only firestore:rules
     function isStylist() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn() && (
+        request.auth.uid in [
+          'iWQNUCAxpATuCIDqMLIgw7q79ru1'
+        ]
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
-    // Who the stylist is. Only editable from the Firebase console.
+    // Optional second way to name a stylist. Only editable from the console.
     match /admins/{uid} {
       allow read: if signedIn();
       allow write: if false;
@@ -29,6 +41,27 @@ service cloud.firestore {
         && request.resource.data.start is timestamp
         && request.resource.data.end is timestamp
         && request.resource.data.start < request.resource.data.end;
+      allow update, delete: if isStylist();
+    }
+
+    // Guest reviews. Anyone may read them; a signed-in guest may post one
+    // under their own UID but may never edit or delete it afterwards -- only
+    // the stylist can hide or remove a review, so nobody can quietly rewrite
+    // a five-star post into something else after it is published.
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.hidden == false
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() < 80
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
       allow update, delete: if isStylist();
     }
 

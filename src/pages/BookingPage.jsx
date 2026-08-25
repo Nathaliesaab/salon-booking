@@ -1,20 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import DayPicker from '../components/DayPicker'
+import Calendar from '../components/Calendar'
+import Icon from '../components/Icon'
+import { CONTACT, POLICY } from '../lib/content'
 import { useAuth } from '../lib/useAuth'
 import {
   loadDayBusy, requestAppointment, watchBlackouts, watchBusy,
   watchSchedule, watchServices,
 } from '../lib/backend'
 import {
-  buildSlots, dateKey, findConflicts, formatDayLong, formatTime,
+  buildSlots, dateKey, findConflicts, formatDayLong, formatTime, isDayOpen, partOfDay,
 } from '../lib/schedule'
+
+const STEPS = ['Service', 'Day', 'Time', 'Details']
 
 export default function BookingPage() {
   const { user } = useAuth()
   const [services, setServices] = useState([])
   const [schedule, setSchedule] = useState(null)
   const [blackouts, setBlackouts] = useState([])
-  const [day, setDay] = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d })
+  const [day, setDay] = useState(null)
   const [busy, setBusy] = useState([])
   const [serviceId, setServiceId] = useState('')
   const [slot, setSlot] = useState(null)
@@ -26,20 +30,44 @@ export default function BookingPage() {
   useEffect(() => watchServices((list) => setServices(list.filter((s) => s.active !== false))), [])
   useEffect(() => watchSchedule(setSchedule), [])
   useEffect(() => watchBlackouts(setBlackouts), [])
-  useEffect(() => watchBusy(day, setBusy), [day])
+  useEffect(() => { if (day) return watchBusy(day, setBusy) }, [day])
 
   const closedKeys = useMemo(() => new Set(blackouts.map((b) => b.id)), [blackouts])
   const service = services.find((s) => s.id === serviceId) ?? null
 
+  // First open day is pre-selected so the calendar never opens on a dead end.
+  useEffect(() => {
+    if (day || !schedule) return
+    const start = new Date(); start.setHours(0, 0, 0, 0)
+    for (let i = 0; i < 90; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i)
+      if (isDayOpen(d, schedule, closedKeys)) { setDay(d); return }
+    }
+  }, [schedule, closedKeys, day])
+
   // `busy` already holds only pending and confirmed slots, so two clients
   // cannot both ask for the same time and leave her to find the clash later.
   const slots = useMemo(() => {
-    if (!service || !schedule || closedKeys.has(dateKey(day))) return []
+    if (!service || !schedule || !day || closedKeys.has(dateKey(day))) return []
     return buildSlots({ day, schedule, busy, durationMin: service.durationMin })
   }, [service, schedule, busy, day, closedKeys])
 
+  // Slots grouped by part of day — a flat wall of 20 times is hard to scan on a phone.
+  const groups = useMemo(() => {
+    const out = []
+    for (const s of slots) {
+      const label = partOfDay(s.start)
+      const last = out[out.length - 1]
+      if (last && last.label === label) last.items.push(s)
+      else out.push({ label, items: [s] })
+    }
+    return out.filter((g) => g.items.some((s) => s.available))
+  }, [slots])
+
   // A slot that was free when it was rendered may not be free now.
   useEffect(() => { setSlot(null) }, [serviceId, day])
+
+  const step = !service ? 0 : !day ? 1 : !slot ? 2 : 3
 
   async function submit(e) {
     e.preventDefault()
@@ -73,16 +101,24 @@ export default function BookingPage() {
   if (done) {
     return (
       <div className="shell">
-        <div className="card">
-          <h1>Request sent</h1>
-          <p>
-            {done.serviceName} on {formatDayLong(done.start)} at {formatTime(done.start)}.
+        <div className="card success">
+          <span className="mark-ico"><Icon name="check" size={40} /></span>
+          <span className="eyebrow">Request received</span>
+          <h1>Thank you</h1>
+          <p className="when">
+            {done.serviceName}<br />
+            {formatDayLong(done.start)} at {formatTime(done.start)}
           </p>
-          <p className="muted">
+          <p className="muted small" style={{ maxWidth: '26rem', margin: '0 auto 1.6rem' }}>
             This time is held for you while she reviews it. You will hear back to
             confirm — nothing is final until then.
           </p>
-          <button className="primary" onClick={() => setDone(null)}>Book another</button>
+          <p className="muted small" style={{ maxWidth: '26rem', margin: '0 auto 1.6rem' }}>
+            Please cancel at least a day ahead if your plans change, and let her know
+            on {CONTACT.phone} if you are running late — after 20 minutes the slot is
+            offered to someone else.
+          </p>
+          <button className="primary" onClick={() => setDone(null)}>Book another appointment</button>
         </div>
       </div>
     )
@@ -90,76 +126,130 @@ export default function BookingPage() {
 
   return (
     <div className="shell">
-      <h1>Book an appointment</h1>
-      <p className="muted">Pick a service and a time. She confirms every request.</p>
+      <div className="section-head" style={{ paddingTop: '1rem', marginBottom: '1.2rem' }}>
+        <span className="eyebrow">Appointments</span>
+        <h1>Find your time</h1>
+        <p className="muted small">Four steps. Every request is confirmed by her personally.</p>
+      </div>
+
+      <div className="steps" aria-hidden="true">
+        {STEPS.map((label, i) => (
+          <div className={`step${i === step ? ' on' : ''}${i < step ? ' done' : ''}`} key={label}>
+            {label}
+          </div>
+        ))}
+      </div>
 
       {error && <div className="notice bad">{error}</div>}
 
-      <form className="card" onSubmit={submit}>
-        <div className="field">
-          <label htmlFor="service">Service</label>
-          <select id="service" value={serviceId} onChange={(e) => setServiceId(e.target.value)} required>
-            <option value="">Choose a service…</option>
+      <form onSubmit={submit}>
+        {/* 1 — service */}
+        <div className="card">
+          <label>1 · Service</label>
+          <div className="choice-list">
             {services.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} — {s.durationMin} min{s.price ? ` · ${s.price}` : ''}
-              </option>
+              <button
+                type="button"
+                key={s.id}
+                className="choice"
+                aria-pressed={serviceId === s.id}
+                onClick={() => setServiceId(s.id)}
+              >
+                <span>
+                  <span className="name">{s.name}</span>
+                  <span className="sub">{s.durationMin} minutes</span>
+                </span>
+                {s.price && <span className="price">{s.price}</span>}
+              </button>
             ))}
-          </select>
+            {services.length === 0 && <p className="muted small">No services listed yet.</p>}
+          </div>
         </div>
 
-        <DayPicker value={day} onChange={setDay} closedKeys={closedKeys} />
+        {/* 2 — day */}
+        <div className="card">
+          <label>2 · Day</label>
+          <Calendar value={day} onChange={setDay} schedule={schedule} closedKeys={closedKeys} />
+        </div>
 
-        {!service && <p className="muted small">Choose a service to see available times.</p>}
-
-        {service && closedKeys.has(dateKey(day)) && <p className="muted">Closed this day.</p>}
-
-        {service && !closedKeys.has(dateKey(day)) && (
-          slots.length === 0
-            ? <p className="muted">No times available on this day. Try another.</p>
-            : (
-              <div className="field">
-                <label>Time</label>
-                <div className="slots">
-                  {slots.map((s) => (
-                    <button
-                      type="button"
-                      key={s.start.toISOString()}
-                      className="slot"
-                      disabled={!s.available}
-                      aria-pressed={slot?.start.getTime() === s.start.getTime()}
-                      onClick={() => setSlot(s)}
-                    >
-                      {formatTime(s.start)}
-                      {!s.available && <span className="why">{s.reason}</span>}
-                    </button>
-                  ))}
-                </div>
+        {/* 3 — time */}
+        <div className="card">
+          <label>3 · Time{day ? ` — ${formatDayLong(day)}` : ''}</label>
+          {!service && <p className="muted small">Choose a service first and her free times will appear here.</p>}
+          {service && !day && <p className="muted small">Choose a day above.</p>}
+          {service && day && groups.length === 0 && (
+            <p className="muted small">Nothing free on this day. Please try another — days with availability are marked with a dot.</p>
+          )}
+          {service && day && groups.map((g) => (
+            <div key={g.label}>
+              <div className="slot-group-label">{g.label}</div>
+              <div className="slots">
+                {g.items.map((s) => (
+                  <button
+                    type="button"
+                    key={s.start.toISOString()}
+                    className="slot"
+                    disabled={!s.available}
+                    aria-pressed={slot?.start.getTime() === s.start.getTime()}
+                    onClick={() => setSlot(s)}
+                  >
+                    {formatTime(s.start)}
+                    {!s.available && <span className="why">{s.reason}</span>}
+                  </button>
+                ))}
               </div>
-            )
-        )}
-
-        <div className="row">
-          <div className="field">
-            <label htmlFor="name">Your name</label>
-            <input id="name" value={form.name} required
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div className="field">
-            <label htmlFor="phone">Phone</label>
-            <input id="phone" type="tel" value={form.phone} required
-              onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="notes">Anything she should know? (optional)</label>
-          <textarea id="notes" rows="2" value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+          ))}
         </div>
 
-        <button className="primary" type="submit" disabled={!slot || submitting}>
-          {submitting ? 'Sending…' : 'Request this time'}
-        </button>
+        {/* 4 — details */}
+        <div className="card">
+          <label>4 · Your details</label>
+          <div className="row">
+            <div className="field">
+              <label htmlFor="name">Your name</label>
+              <input id="name" value={form.name} required autoComplete="name"
+                onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="field">
+              <label htmlFor="phone">Phone</label>
+              <input id="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} required
+                onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="notes">Anything she should know? (optional)</label>
+            <textarea id="notes" rows="2" value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+        </div>
+
+        <div className="card policy">
+          <span className="eyebrow" style={{ textAlign: 'left' }}>Booking policy</span>
+          <ul className="policy-list">
+            {POLICY.map((p) => (
+              <li key={p.text}>
+                <span className="ico"><Icon name={p.ico} size={20} /></span>
+                <span>{p.text}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small" style={{ margin: 0 }}>
+            Need to change something? Call or WhatsApp{' '}
+            <a href={`tel:${CONTACT.phoneHref}`}>{CONTACT.phone}</a>.
+          </p>
+        </div>
+
+        <div className="summary">
+          <div className="line"><span className="muted">Service</span><b>{service ? service.name : '—'}</b></div>
+          <div className="line">
+            <span className="muted">When</span>
+            <b>{slot ? `${formatDayLong(slot.start)}, ${formatTime(slot.start)}` : '—'}</b>
+          </div>
+          <button className="primary big" type="submit" disabled={!slot || submitting}>
+            {submitting ? 'Sending…' : 'Request this time'}
+          </button>
+        </div>
       </form>
     </div>
   )

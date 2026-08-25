@@ -17,6 +17,7 @@ export const {
   requestAppointment, setAppointmentStatus,
   saveSchedule, saveService, deleteService,
   addBlackout, removeBlackout, isAdmin,
+  watchReviews, addReview, setReviewHidden, deleteReview,
 } = impl
 
 export const resetDemo = demo.resetDemo
