@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import AppointmentRow from '../../components/AppointmentRow'
+import Modal from '../../components/Modal'
 import { loadDayAppointments, setAppointmentStatus } from '../../lib/backend'
-import { findConflicts, formatTime } from '../../lib/schedule'
+import { findConflicts, formatDayLong, formatTime } from '../../lib/schedule'
+import { useToast } from '../../lib/useToast'
 
 export default function RequestsTab({ pending }) {
   const [error, setError] = useState(null)
   const [busyId, setBusyId] = useState(null)
+  const [declining, setDeclining] = useState(null)
+  const toast = useToast()
 
   async function confirm(appt) {
     setError(null); setBusyId(appt.id)
@@ -20,6 +24,7 @@ export default function RequestsTab({ pending }) {
         return
       }
       await setAppointmentStatus(appt.id, 'confirmed')
+      toast(`${appt.clientName} confirmed for ${formatDayLong(appt.start)} at ${formatTime(appt.start)}.`)
     } finally {
       setBusyId(null)
     }
@@ -44,13 +49,39 @@ export default function RequestsTab({ pending }) {
                 Confirm
               </button>
               <button className="danger" disabled={busyId === appt.id}
-                onClick={() => setAppointmentStatus(appt.id, 'declined')}>
+                onClick={() => setDeclining(appt)}>
                 Decline
               </button>
             </>
           }
         />
       ))}
+
+      <Modal open={declining !== null} onClose={() => setDeclining(null)} title="Decline this request?">
+        <p>
+          {declining?.clientName} asked for {declining?.serviceName} on{' '}
+          {declining && formatDayLong(declining.start)} at {declining && formatTime(declining.start)}.
+        </p>
+        <p className="muted small">
+          The slot is released straight away. She is not told automatically — call
+          {declining?.clientPhone ? ` ${declining.clientPhone}` : ' her'} if you want to explain.
+        </p>
+        <div className="modal-actions">
+          <button type="button" className="ghost" onClick={() => setDeclining(null)}>Keep it</button>
+          <button
+            type="button"
+            className="primary danger-solid"
+            onClick={async () => {
+              const name = declining.clientName
+              await setAppointmentStatus(declining.id, 'declined')
+              setDeclining(null)
+              toast(`${name}'s request declined and the slot freed.`, 'bad')
+            }}
+          >
+            Decline request
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -381,3 +381,156 @@ figure { margin: 0; }
 .review footer { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
 .review .who { color: var(--text); }
 .review .tag { border: 1px solid var(--border); padding: .2rem .6rem; border-radius: 999px; }
+
+/* ------------------------------------------------------------------
+   Admin. The same sidebar throughout: docked on a desktop, and a drawer
+   behind a hamburger on a phone.
+------------------------------------------------------------------ */
+.admin { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
+
+.admin-scrim {
+  position: fixed; inset: 0; z-index: 45; background: rgba(46, 36, 41, .45);
+  backdrop-filter: blur(3px); opacity: 0; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.admin-scrim.show { opacity: 1; pointer-events: auto; }
+
+.admin-nav {
+  position: fixed; z-index: 50; top: 0; bottom: 0; left: 0; width: 254px;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: .2rem;
+  padding: 1.5rem .9rem calc(1.2rem + env(safe-area-inset-bottom));
+  transform: translateX(-100%); transition: transform .24s ease;
+  overflow-y: auto;
+}
+.admin-nav.open { transform: none; box-shadow: var(--shadow-lg); }
+
+.admin-brand { padding: 0 .6rem 1.5rem; }
+.admin-brand .name { font-family: var(--display); font-size: 1.35rem; display: block; }
+.admin-brand .who {
+  font-size: .62rem; letter-spacing: .12em; color: var(--muted);
+  word-break: break-all; display: block; margin-top: .3rem;
+}
+
+.admin-links { display: flex; flex-direction: column; flex: 1; gap: .15rem; }
+.admin-link {
+  border: none; background: none; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: flex-start; gap: .8rem;
+  padding: .75rem .8rem; min-height: 46px;
+  font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.admin-link:hover { border: none; background: var(--surface-soft); }
+.admin-link .ico { line-height: 0; }
+.admin-link[aria-current='page'] { color: var(--plum); background: var(--surface-soft); }
+.admin-link .badge { margin-left: auto; }
+.admin-link.signout {
+  border-top: 1px solid var(--border); border-radius: 0;
+  margin-top: .5rem; padding-top: 1rem;
+}
+
+.admin-head {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: .75rem;
+  padding: .9rem clamp(1rem, 4vw, 2rem);
+  background: rgba(251, 248, 246, .93); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.admin-head h1 { font-size: 1.5rem; margin: 0; }
+.admin-head .small { align-self: baseline; }
+.hamburger {
+  width: 44px; height: 44px; min-height: 44px; padding: 0; flex: 0 0 auto;
+  display: grid; place-items: center; color: var(--text); margin-left: -.4rem;
+}
+.admin-head .signout-top { margin-left: auto; padding: .4rem .7rem; min-height: 36px; }
+.admin-body { padding: 1.2rem clamp(1rem, 4vw, 2rem) 3rem; max-width: 1000px; }
+
+/* Desktop: the drawer is simply always there, and the scrim never is. */
+@media (min-width: 860px) {
+  .admin { display: grid; grid-template-columns: 254px 1fr; }
+  .admin-nav { position: sticky; height: 100dvh; transform: none; box-shadow: none; }
+  .admin-scrim, .hamburger, .admin-head .signout-top { display: none; }
+  .admin-head { padding-top: 1.1rem; padding-bottom: 1.1rem; }
+  .admin-head h1 { font-size: 1.7rem; }
+}
+
+/* rows that survive a narrow screen */
+@media (max-width: 560px) {
+  .appt { flex-direction: column; gap: .4rem; }
+  .appt .when { min-width: 0; display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap; }
+  .appt .when .small { margin: 0; }
+  .appt .row { width: 100%; }
+  .appt .row button { flex: 1 1 7rem; }
+  .row > * { flex: 1 1 100%; }
+  .tabs { gap: .3rem; }
+  .tabs button { flex: 1 1 5.5rem; padding: .5rem .4rem; font-size: .62rem; }
+}
+.appt .who a { color: inherit; }
+
+/* ---------- modals ---------- */
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  flex-wrap: wrap; margin-bottom: 1rem;
+}
+.card-head h2 { margin: 0; }
+
+.modal {
+  border: none; padding: 0; background: var(--surface); color: var(--text);
+  width: min(30rem, 100%); max-height: 90dvh; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.modal::backdrop { background: rgba(46, 36, 41, .45); backdrop-filter: blur(3px); }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.2rem 1.3rem 1rem; border-bottom: 1px solid var(--border);
+}
+.modal-head h2 { margin: 0; font-size: 1.5rem; }
+.modal-x {
+  border: none; background: none; font-size: 1.6rem; line-height: 1; padding: 0;
+  width: 44px; height: 44px; min-height: 44px; color: var(--muted); border-radius: 999px;
+}
+.modal-x:hover { background: var(--surface-soft); border: none; }
+.modal-body { padding: 1.3rem; overflow-y: auto; }
+.modal-actions {
+  display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.4rem;
+  padding-top: 1.2rem; border-top: 1px solid var(--border);
+}
+.modal-actions button { flex: 0 1 auto; }
+
+/* On a phone it rises from the bottom, where the thumb is. */
+@media (max-width: 560px) {
+  .modal {
+    width: 100%; max-width: none; margin: 0 0 0 auto; position: fixed;
+    bottom: 0; left: 0; right: 0; top: auto;
+    border-radius: var(--radius) var(--radius) 0 0; max-height: 92dvh;
+    animation: sheet-up .22s ease;
+  }
+  .modal-body { padding-bottom: calc(1.3rem + env(safe-area-inset-bottom)); }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions button { width: 100%; }
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* ---------- toasts ---------- */
+.toaster {
+  position: fixed; z-index: 90; left: 50%; transform: translateX(-50%);
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column-reverse; gap: .5rem;
+  width: min(26rem, calc(100% - 2rem)); pointer-events: none;
+}
+@media (min-width: 860px) {
+  .toaster { left: auto; right: 1.5rem; transform: none; bottom: 1.5rem; }
+}
+
+.toast {
+  pointer-events: auto; width: 100%; text-align: left; text-transform: none;
+  letter-spacing: .01em; font-size: .88rem; font-weight: 400; line-height: 1.5;
+  padding: .9rem 1.1rem; border-radius: var(--radius-sm);
+  background: var(--plum); color: #f6efec; border: 1px solid var(--plum);
+  box-shadow: var(--shadow-lg); animation: toast-in .2s ease;
+}
+.toast:hover { border-color: var(--plum); }
+.toast.bad { background: var(--bad); border-color: var(--bad); color: #fff; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+button.danger-solid { background: var(--bad); border-color: var(--bad); color: #fff; }
+button.danger-solid:hover:not(:disabled) { background: #8b3b46; border-color: #8b3b46; }

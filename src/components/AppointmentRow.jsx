@@ -15,7 +15,12 @@ export default function AppointmentRow({ appt, showDate = false, actions = null 
           {appt.serviceName} · {appt.durationMin} min
           {appt.price ? ` · ${appt.price}` : ''}
         </div>
-        {appt.clientPhone && <div className="meta">{appt.clientPhone}</div>}
+        {/* A tap-to-call link: she reads this on a phone far more often than a laptop. */}
+        {appt.clientPhone && (
+          <div className="meta">
+            <a href={`tel:${appt.clientPhone.replace(/[^+\d]/g, '')}`}>{appt.clientPhone}</a>
+          </div>
+        )}
         {appt.notes && <div className="meta">“{appt.notes}”</div>}
         {actions && <div className="row" style={{ marginTop: '.5rem' }}>{actions}</div>}
       </div>

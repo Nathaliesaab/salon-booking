@@ -6,6 +6,8 @@ import LogTab from './admin/LogTab'
 import ServicesTab from './admin/ServicesTab'
 import HoursTab from './admin/HoursTab'
 import ReviewsTab from './admin/ReviewsTab'
+import Icon from '../components/Icon'
+import Modal from '../components/Modal'
 import { useAuth } from '../lib/useAuth'
 import { watchAppointmentsFrom, watchBlackouts, watchSchedule, watchServices } from '../lib/backend'
 
@@ -14,6 +16,8 @@ const LOG_WINDOW_DAYS = 120
 export default function AdminPage() {
   const { user, admin, loading, signOut } = useAuth()
   const [tab, setTab] = useState('requests')
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
   const [appointments, setAppointments] = useState([])
   const [services, setServices] = useState([])
   const [schedule, setSchedule] = useState(null)
@@ -22,6 +26,14 @@ export default function AdminPage() {
   const since = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() - LOG_WINDOW_DAYS); d.setHours(0, 0, 0, 0); return d
   }, [])
+
+  // Esc closes the drawer, matching the modals.
+  useEffect(() => {
+    if (!navOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setNavOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [navOpen])
 
   const signedIn = admin
   useEffect(() => {
@@ -50,32 +62,99 @@ export default function AdminPage() {
     .filter((a) => a.status === 'pending')
     .sort((a, b) => a.start - b.start)
 
+  // [key, label, icon, badge] -- the same list drives the sidebar on a desktop
+  // and the bottom bar on a phone, so they can never drift apart.
   const tabs = [
-    ['requests', 'Requests', pending.length],
-    ['day', 'Day'],
-    ['log', 'Log'],
-    ['services', 'Services'],
-    ['hours', 'Hours'],
-    ['reviews', 'Reviews'],
+    ['requests', 'Requests', 'inbox', pending.length],
+    ['day', 'Today', 'calendar'],
+    ['log', 'Log', 'list'],
+    ['services', 'Services', 'tag'],
+    ['hours', 'Hours', 'clock'],
+    ['reviews', 'Reviews', 'star'],
   ]
+  const current = tabs.find(([key]) => key === tab)
+
+  function go(key) {
+    setTab(key)
+    setNavOpen(false)
+  }
 
   return (
-    <div className="shell wide">
-      <div className="tabs">
-        {tabs.map(([key, label, count]) => (
-          <button key={key} aria-selected={tab === key} onClick={() => setTab(key)}>
-            {label}{count > 0 && <span className="badge">{count}</span>}
+    <div className="admin">
+      {/* Only ever visible while the drawer is open, which is only on narrow screens. */}
+      <div
+        className={`admin-scrim${navOpen ? ' show' : ''}`}
+        onClick={() => setNavOpen(false)}
+        aria-hidden="true"
+      />
+
+      <nav className={`admin-nav${navOpen ? ' open' : ''}`} aria-label="Admin sections">
+        <div className="admin-brand">
+          <span className="name">Belle &amp; Bloom</span>
+          <span className="who">{user.email}</span>
+        </div>
+
+        <div className="admin-links">
+          {tabs.map(([key, label, icon, count]) => (
+            <button
+              key={key}
+              className="admin-link"
+              aria-current={tab === key ? 'page' : undefined}
+              onClick={() => go(key)}
+            >
+              <span className="ico">
+                <Icon name={icon} size={22} />
+                {count > 0 && <span className="dot" aria-hidden="true" />}
+              </span>
+              <span className="label">{label}</span>
+              {count > 0 && <span className="badge">{count}</span>}
+            </button>
+          ))}
+        </div>
+
+        <button className="admin-link signout" onClick={() => setConfirmSignOut(true)}>
+          <span className="ico"><Icon name="logout" size={22} /></span>
+          <span className="label">Sign out</span>
+        </button>
+      </nav>
+
+      <div className="admin-main">
+        <header className="admin-head">
+          <button
+            className="ghost hamburger"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={navOpen}
+          >
+            <Icon name="menu" size={24} />
           </button>
-        ))}
-        <button className="ghost" onClick={signOut}>Sign out</button>
+          <h1>{current?.[1]}</h1>
+          {tab === 'requests' && pending.length > 0 && (
+            <span className="small muted">{pending.length} waiting</span>
+          )}
+          <button className="ghost signout-top" onClick={() => setConfirmSignOut(true)}>Sign out</button>
+        </header>
+
+        <div className="admin-body">
+          {tab === 'requests' && <RequestsTab pending={pending} />}
+          {tab === 'day' && <DayTab schedule={schedule} blackouts={blackouts} />}
+          {tab === 'log' && <LogTab appointments={appointments} />}
+          {tab === 'services' && <ServicesTab services={services} />}
+          {tab === 'hours' && <HoursTab schedule={schedule} blackouts={blackouts} />}
+          {tab === 'reviews' && <ReviewsTab />}
+        </div>
       </div>
 
-      {tab === 'requests' && <RequestsTab pending={pending} />}
-      {tab === 'day' && <DayTab schedule={schedule} blackouts={blackouts} />}
-      {tab === 'log' && <LogTab appointments={appointments} />}
-      {tab === 'services' && <ServicesTab services={services} />}
-      {tab === 'hours' && <HoursTab schedule={schedule} blackouts={blackouts} />}
-      {tab === 'reviews' && <ReviewsTab />}
+      <Modal open={confirmSignOut} onClose={() => setConfirmSignOut(false)} title="Sign out?">
+        <p>You will need your email and password to get back into the admin.</p>
+        <p className="muted small">
+          The booking page keeps working for clients either way — this only signs out {user.email}.
+        </p>
+        <div className="modal-actions">
+          <button type="button" className="ghost" onClick={() => setConfirmSignOut(false)}>Stay signed in</button>
+          <button type="button" className="primary" onClick={signOut}>Sign out</button>
+        </div>
+      </Modal>
     </div>
   )
 }

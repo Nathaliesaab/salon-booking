@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
+import Modal from '../../components/Modal'
+import { useToast } from '../../lib/useToast'
 import { addBlackout, removeBlackout, saveSchedule } from '../../lib/backend'
 import { DAY_NAMES, dateKey, formatDayLong, keyToDate } from '../../lib/schedule'
 
 /** Weekly working hours plus one-off closed days (holidays, sick days). */
 export default function HoursTab({ schedule, blackouts }) {
   const [draft, setDraft] = useState(schedule)
-  const [saved, setSaved] = useState(false)
-  const [closeDate, setCloseDate] = useState('')
-  const [closeReason, setCloseReason] = useState('')
+  const toast = useToast()
+  const [closing, setClosing] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => { setDraft(schedule) }, [schedule])
   if (!draft) return null
@@ -27,9 +29,17 @@ export default function HoursTab({ schedule, blackouts }) {
   }
 
   async function save() {
-    await saveSchedule({ ...draft, slotMinutes: Number(draft.slotMinutes), leadTimeHours: Number(draft.leadTimeHours) })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSaving(true)
+    try {
+      await saveSchedule({
+        ...draft,
+        slotMinutes: Number(draft.slotMinutes),
+        leadTimeHours: Number(draft.leadTimeHours),
+      })
+      toast('Weekly hours saved. The booking calendar is updated.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -70,31 +80,18 @@ export default function HoursTab({ schedule, blackouts }) {
               onChange={(e) => setDraft({ ...draft, leadTimeHours: e.target.value })} />
           </div>
         </div>
-        <button className="primary" onClick={save}>Save hours</button>
-        {saved && <span className="small muted" style={{ marginLeft: '.75rem' }}>Saved.</span>}
+        <button className="primary" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save hours'}
+        </button>
       </div>
 
       <div className="card">
-        <h2>Closed days</h2>
-        <div className="row">
-          <div className="field">
-            <label htmlFor="cd">Date</label>
-            <input id="cd" type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="cr">Reason (optional)</label>
-            <input id="cr" value={closeReason} onChange={(e) => setCloseReason(e.target.value)} />
-          </div>
+        <div className="card-head">
+          <h2>Closed days</h2>
+          <button className="primary" onClick={() => setClosing({ date: '', reason: '' })}>
+            Mark a day closed
+          </button>
         </div>
-        <button
-          disabled={!closeDate}
-          onClick={async () => {
-            await addBlackout(keyToDate(closeDate), closeReason)
-            setCloseDate(''); setCloseReason('')
-          }}
-        >
-          Mark closed
-        </button>
 
         {blackouts.length === 0 && <p className="muted small" style={{ marginTop: '.75rem' }}>None.</p>}
         {blackouts
@@ -106,11 +103,49 @@ export default function HoursTab({ schedule, blackouts }) {
                 <strong>{formatDayLong(b.date)}</strong>
                 {b.reason && <div className="meta">{b.reason}</div>}
               </div>
-              <button className="danger" onClick={() => removeBlackout(b.id)}>Reopen</button>
+              <button
+                className="danger"
+                onClick={async () => {
+                  await removeBlackout(b.id)
+                  toast(`${formatDayLong(b.date)} is open for bookings again.`)
+                }}
+              >
+                Reopen
+              </button>
             </div>
           ))}
         <p className="small muted">Today is {formatDayLong(keyToDate(dateKey(new Date())))}.</p>
       </div>
+
+      <Modal open={closing !== null} onClose={() => setClosing(null)} title="Mark a day closed">
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            const day = keyToDate(closing.date)
+            await addBlackout(day, closing.reason)
+            setClosing(null)
+            toast(`${formatDayLong(day)} marked closed.`)
+          }}
+        >
+          <div className="field">
+            <label htmlFor="cd">Date</label>
+            <input id="cd" type="date" required value={closing?.date ?? ''}
+              onChange={(e) => setClosing({ ...closing, date: e.target.value })} />
+          </div>
+          <div className="field">
+            <label htmlFor="cr">Reason (optional)</label>
+            <input id="cr" value={closing?.reason ?? ''}
+              onChange={(e) => setClosing({ ...closing, reason: e.target.value })} />
+          </div>
+          <p className="muted small">
+            Existing bookings on that day are not cancelled — this only stops new ones.
+          </p>
+          <div className="modal-actions">
+            <button type="button" className="ghost" onClick={() => setClosing(null)}>Cancel</button>
+            <button className="primary" disabled={!closing?.date}>Mark closed</button>
+          </div>
+        </form>
+      </Modal>
     </>
   )
 }
