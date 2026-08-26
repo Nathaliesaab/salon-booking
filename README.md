@@ -1,6 +1,13 @@
-# Salon Booking
+# Hair by Simona
 
-A mobile-friendly booking page for a single stylist, plus an admin side she owns.
+A mobile-friendly booking page for Simona, plus an admin side she owns.
+
+She works out of **two salons**, so a client picks the salon as part of booking
+and the choice rides along on the request, the day view and the log. Her
+calendar is deliberately shared across both: a time taken at one salon is taken
+at the other, which is what stops her being booked into two places at once.
+Her name, the two salons and all the front-page copy live in
+`src/lib/content.js` — that one file is the whole rebrand.
 
 - **Clients** (`/`) pick a service and a free time and send a **request**.
 - **She** (`/admin`) sees pending requests, confirms or declines them, keeps a

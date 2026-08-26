@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/useAuth'
+import { BRAND } from '../lib/content'
 
 export default function LoginPage() {
   const { signIn } = useAuth()
@@ -22,7 +23,7 @@ export default function LoginPage() {
 
   return (
     <div className="shell">
-      <h1>Stylist sign in</h1>
+      <h1>{BRAND.first}&rsquo;s sign in</h1>
       <form className="card" onSubmit={submit}>
         {error && <div className="notice bad">{error}</div>}
         <div className="field">

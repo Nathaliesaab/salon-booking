@@ -8,6 +8,7 @@ import HoursTab from './admin/HoursTab'
 import ReviewsTab from './admin/ReviewsTab'
 import Icon from '../components/Icon'
 import Modal from '../components/Modal'
+import { BRAND } from '../lib/content'
 import { useAuth } from '../lib/useAuth'
 import { watchAppointmentsFrom, watchBlackouts, watchSchedule, watchServices } from '../lib/backend'
 
@@ -90,7 +91,7 @@ export default function AdminPage() {
 
       <nav className={`admin-nav${navOpen ? ' open' : ''}`} aria-label="Admin sections">
         <div className="admin-brand">
-          <span className="name">Belle &amp; Bloom</span>
+          <span className="name">{BRAND.name}</span>
           <span className="who">{user.email}</span>
         </div>
 

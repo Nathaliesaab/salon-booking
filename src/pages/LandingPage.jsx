@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import Stars from '../components/Stars'
-import { PHOTOS } from '../lib/content'
+import { BRAND, LOCATIONS, PHOTOS } from '../lib/content'
 import { watchReviews, watchServices } from '../lib/backend'
 
 const PROMISES = [
   { ico: 'palette', title: 'Colour, mixed for you', text: 'Balayage, roots and gloss formulated against your skin tone and your history — never straight out of a box.' },
-  { ico: 'chair', title: 'One guest at a time', text: 'No overlapping chairs and no rushing. The studio is yours from the moment you sit down.' },
-  { ico: 'scissors', title: 'An honest consultation', text: 'If a look will not hold on your hair, she will tell you before she picks up the scissors — and offer something that will.' },
+  { ico: 'chair', title: 'One guest at a time', text: 'No overlapping chairs and no rushing. The chair is yours from the moment you sit down.' },
+  { ico: 'pin', title: 'Two salons, one calendar', text: 'Simona works out of two salons. You pick the one that suits you, and the times you see are the ones she is genuinely free — never double-booked across the two.' },
+  { ico: 'scissors', title: 'An honest consultation', text: 'If a look will not hold on your hair, Simona will tell you before she picks up the scissors — and offer something that will.' },
   { ico: 'leaf', title: 'Care that outlasts the visit', text: 'Every appointment ends with a plan for keeping the colour and the cut looking like this at home.' },
 ]
 
@@ -23,11 +24,12 @@ export default function LandingPage() {
       <section className="hero">
         <div className="hero-inner">
           <div>
-            <span className="eyebrow">Hair studio · Dubai</span>
+            <span className="eyebrow">Hair by Simona · {BRAND.city}</span>
             <h1>The quiet luxury of hair that <em>actually suits you</em></h1>
             <p className="lead">
-              Belle &amp; Bloom is a single-chair studio for colour, cuts and blow dries.
-              One stylist, one guest, and as much time as the work honestly takes.
+              Simona does colour, cuts and blow dries at two salons across {BRAND.city} —
+              and takes her bookings herself, wherever she happens to be that day.
+              One guest at a time, and as much time as the work honestly takes.
             </p>
             <div className="hero-actions">
               <Link className="btn-link primary" to="/book">Book an appointment</Link>
@@ -51,16 +53,16 @@ export default function LandingPage() {
 
       <section className="split" id="about">
         <figure className="split-photo">
-          <img src={PHOTOS.studio} alt="Inside the Belle and Bloom studio" loading="lazy" />
+          <img src={PHOTOS.studio} alt="Simona at work in the salon" loading="lazy" />
         </figure>
         <div className="split-copy">
           <div className="section-head left">
           <span className="eyebrow">The studio</span>
-          <h2>A small room, and <span className="script">very high standards</span></h2>
+          <h2>Two chairs, and <span className="script">one very high standard</span></h2>
           <p>
-            Belle &amp; Bloom began with one mirror, one chair and a refusal to run three
-            heads at once. It is still one stylist keeping her own calendar — which is
-            exactly why every appointment gets her whole attention.
+            Simona splits her week between two salons, but she keeps a single calendar
+            and answers every request herself. Book with her, not with a front desk —
+            which is exactly why every appointment gets her whole attention.
             </p>
           </div>
           <ul className="promise-list">
@@ -118,6 +120,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="section" id="where">
+        <div className="section-head">
+          <span className="eyebrow">Where to find her</span>
+          <h2>Two salons</h2>
+          <p>Pick whichever is easier for you when you book — the available times are the same either way.</p>
+        </div>
+        <div className="grid where-grid">
+          {LOCATIONS.map((l) => (
+            <div className="tile" key={l.id}>
+              <span className="ico"><Icon name="pin" /></span>
+              <h3>{l.name}</h3>
+              <p className="muted small">{l.address}</p>
+              <p className="muted small">{l.days}</p>
+              {l.mapUrl && <p className="small"><a href={l.mapUrl} target="_blank" rel="noreferrer">Open in maps</a></p>}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="section tint" id="love">
         <div className="section-head">
           <span className="eyebrow">Kind words</span>
@@ -141,7 +162,7 @@ export default function LandingPage() {
       <section className="band">
         <span className="eyebrow" style={{ color: 'rgba(246,239,236,.7)' }}>Appointments</span>
         <h2>Ready when you are</h2>
-        <p>Choose a day on the calendar, pick a time that suits you, and she will confirm your place personally.</p>
+        <p>Choose your salon, pick a time that suits you, and Simona will confirm your place personally.</p>
         <Link className="btn-link primary" to="/book">Book an appointment</Link>
       </section>
     </>

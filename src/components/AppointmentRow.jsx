@@ -15,6 +15,8 @@ export default function AppointmentRow({ appt, showDate = false, actions = null 
           {appt.serviceName} · {appt.durationMin} min
           {appt.price ? ` · ${appt.price}` : ''}
         </div>
+        {/* Where to be. Older rows predate the two-salon choice and have none. */}
+        {appt.locationName && <div className="meta">at {appt.locationName}</div>}
         {/* A tap-to-call link: she reads this on a phone far more often than a laptop. */}
         {appt.clientPhone && (
           <div className="meta">

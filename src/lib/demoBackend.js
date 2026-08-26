@@ -131,7 +131,7 @@ export async function loadDayBusy(day) {
   return busyRows().filter(sameDay(day))
 }
 
-export async function requestAppointment({ client, service, start, end, notes, uid }) {
+export async function requestAppointment({ client, service, location, start, end, notes, uid }) {
   const id = `a${Date.now()}${Math.floor(Math.random() * 1000)}`
   write((state) => {
     state.appointments.push({
@@ -140,6 +140,8 @@ export async function requestAppointment({ client, service, start, end, notes, u
       clientPhone: client.phone.trim(),
       serviceId: service.id,
       serviceName: service.name,
+      locationId: location?.id ?? null,
+      locationName: location?.name ?? null,
       durationMin: service.durationMin,
       price: service.price ?? null,
       start: start.toISOString(),

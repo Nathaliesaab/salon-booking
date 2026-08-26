@@ -111,7 +111,7 @@ export async function loadDayBusy(day) {
   return snap.docs.map(fromDoc)
 }
 
-export async function requestAppointment({ client, service, start, end, notes, uid }) {
+export async function requestAppointment({ client, service, location, start, end, notes, uid }) {
   const ref = doc(appointmentsRef())
   const batch = writeBatch(db)
   batch.set(ref, {
@@ -119,6 +119,10 @@ export async function requestAppointment({ client, service, start, end, notes, u
     clientPhone: client.phone.trim(),
     serviceId: service.id,
     serviceName: service.name,
+    // Which salon to be at. Kept on the appointment only -- `busy` stays free of
+    // it because the calendar is shared: a slot is taken wherever she is.
+    locationId: location?.id ?? null,
+    locationName: location?.name ?? null,
     durationMin: service.durationMin,
     price: service.price ?? null,
     start: Timestamp.fromDate(start),

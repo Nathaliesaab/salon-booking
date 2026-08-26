@@ -16,7 +16,8 @@ export default function LogTab({ appointments }) {
       .filter((a) => !term ||
         a.clientName?.toLowerCase().includes(term) ||
         a.clientPhone?.includes(term) ||
-        a.serviceName?.toLowerCase().includes(term))
+        a.serviceName?.toLowerCase().includes(term) ||
+        a.locationName?.toLowerCase().includes(term))
       .sort((a, b) => b.start - a.start)
 
     const byDay = new Map()
@@ -31,7 +32,7 @@ export default function LogTab({ appointments }) {
   return (
     <div className="card">
       <div className="field">
-        <label htmlFor="q">Search name, phone, or service</label>
+        <label htmlFor="q">Search name, phone, service, or salon</label>
         <input id="q" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="tabs">

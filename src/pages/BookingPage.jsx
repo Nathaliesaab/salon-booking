@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Calendar from '../components/Calendar'
 import Icon from '../components/Icon'
-import { CONTACT, POLICY } from '../lib/content'
+import { BRAND, CONTACT, LOCATIONS, POLICY, findLocation } from '../lib/content'
 import { useAuth } from '../lib/useAuth'
 import {
   loadDayBusy, requestAppointment, watchBlackouts, watchBusy,
@@ -11,7 +11,10 @@ import {
   buildSlots, dateKey, findConflicts, formatDayLong, formatTime, isDayOpen, partOfDay,
 } from '../lib/schedule'
 
-const STEPS = ['Service', 'Day', 'Time', 'Details']
+const STEPS = ['Service', 'Salon', 'Day', 'Time', 'Details']
+
+// One salon needs no choosing; the step only appears when there are two.
+const ONE_LOCATION = LOCATIONS.length < 2
 
 export default function BookingPage() {
   const { user } = useAuth()
@@ -21,6 +24,7 @@ export default function BookingPage() {
   const [day, setDay] = useState(null)
   const [busy, setBusy] = useState([])
   const [serviceId, setServiceId] = useState('')
+  const [locationId, setLocationId] = useState(ONE_LOCATION ? (LOCATIONS[0]?.id ?? '') : '')
   const [slot, setSlot] = useState(null)
   const [form, setForm] = useState({ name: '', phone: '', notes: '' })
   const [error, setError] = useState(null)
@@ -34,6 +38,7 @@ export default function BookingPage() {
 
   const closedKeys = useMemo(() => new Set(blackouts.map((b) => b.id)), [blackouts])
   const service = services.find((s) => s.id === serviceId) ?? null
+  const location = findLocation(locationId)
 
   // First open day is pre-selected so the calendar never opens on a dead end.
   useEffect(() => {
@@ -67,12 +72,12 @@ export default function BookingPage() {
   // A slot that was free when it was rendered may not be free now.
   useEffect(() => { setSlot(null) }, [serviceId, day])
 
-  const step = !service ? 0 : !day ? 1 : !slot ? 2 : 3
+  const step = !service ? 0 : !location ? 1 : !day ? 2 : !slot ? 3 : 4
 
   async function submit(e) {
     e.preventDefault()
     setError(null)
-    if (!service || !slot) return
+    if (!service || !slot || !location) return
     setSubmitting(true)
     try {
       // Re-read the day immediately before writing -- the live listener can lag
@@ -84,10 +89,10 @@ export default function BookingPage() {
         return
       }
       await requestAppointment({
-        client: form, service, start: slot.start, end: slot.end,
+        client: form, service, location, start: slot.start, end: slot.end,
         notes: form.notes, uid: user?.uid,
       })
-      setDone({ ...slot, serviceName: service.name })
+      setDone({ ...slot, serviceName: service.name, location })
       setForm({ name: '', phone: '', notes: '' })
       setSlot(null)
     } catch (err) {
@@ -108,14 +113,15 @@ export default function BookingPage() {
           <p className="when">
             {done.serviceName}<br />
             {formatDayLong(done.start)} at {formatTime(done.start)}
+            {done.location && <><br />{done.location.name} — {done.location.address}</>}
           </p>
           <p className="muted small" style={{ maxWidth: '26rem', margin: '0 auto 1.6rem' }}>
-            This time is held for you while she reviews it. You will hear back to
-            confirm — nothing is final until then.
+            This time is held for you while {BRAND.first} reviews it. You will hear back
+            to confirm — nothing is final until then.
           </p>
           <p className="muted small" style={{ maxWidth: '26rem', margin: '0 auto 1.6rem' }}>
-            Please cancel at least a day ahead if your plans change, and let her know
-            on {CONTACT.phone} if you are running late — after 20 minutes the slot is
+            Please cancel at least a day ahead if your plans change, and let {BRAND.first}
+            know on {CONTACT.phone} if you are running late — after 20 minutes the slot is
             offered to someone else.
           </p>
           <button className="primary" onClick={() => setDone(null)}>Book another appointment</button>
@@ -129,7 +135,7 @@ export default function BookingPage() {
       <div className="section-head" style={{ paddingTop: '1rem', marginBottom: '1.2rem' }}>
         <span className="eyebrow">Appointments</span>
         <h1>Find your time</h1>
-        <p className="muted small">Four steps. Every request is confirmed by her personally.</p>
+        <p className="muted small">A few steps. Every request is confirmed by {BRAND.first} personally.</p>
       </div>
 
       <div className="steps" aria-hidden="true">
@@ -166,15 +172,42 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* 2 — day */}
+        {/* 2 — salon */}
+        {!ONE_LOCATION && (
+          <div className="card">
+            <label>2 · Salon</label>
+            <p className="muted small" style={{ marginTop: 0 }}>
+              {BRAND.first} works from both. The free times are the same either way — this
+              just tells her where to meet you.
+            </p>
+            <div className="choice-list">
+              {LOCATIONS.map((l) => (
+                <button
+                  type="button"
+                  key={l.id}
+                  className="choice"
+                  aria-pressed={locationId === l.id}
+                  onClick={() => setLocationId(l.id)}
+                >
+                  <span>
+                    <span className="name">{l.name}</span>
+                    <span className="sub">{l.address}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3 — day */}
         <div className="card">
-          <label>2 · Day</label>
+          <label>3 · Day</label>
           <Calendar value={day} onChange={setDay} schedule={schedule} closedKeys={closedKeys} />
         </div>
 
         {/* 3 — time */}
         <div className="card">
-          <label>3 · Time{day ? ` — ${formatDayLong(day)}` : ''}</label>
+          <label>4 · Time{day ? ` — ${formatDayLong(day)}` : ''}</label>
           {!service && <p className="muted small">Choose a service first and her free times will appear here.</p>}
           {service && !day && <p className="muted small">Choose a day above.</p>}
           {service && day && groups.length === 0 && (
@@ -204,7 +237,7 @@ export default function BookingPage() {
 
         {/* 4 — details */}
         <div className="card">
-          <label>4 · Your details</label>
+          <label>5 · Your details</label>
           <div className="row">
             <div className="field">
               <label htmlFor="name">Your name</label>
@@ -218,7 +251,7 @@ export default function BookingPage() {
             </div>
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label htmlFor="notes">Anything she should know? (optional)</label>
+            <label htmlFor="notes">Anything {BRAND.first} should know? (optional)</label>
             <textarea id="notes" rows="2" value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
@@ -242,11 +275,14 @@ export default function BookingPage() {
 
         <div className="summary">
           <div className="line"><span className="muted">Service</span><b>{service ? service.name : '—'}</b></div>
+          {!ONE_LOCATION && (
+            <div className="line"><span className="muted">Salon</span><b>{location ? location.name : '—'}</b></div>
+          )}
           <div className="line">
             <span className="muted">When</span>
             <b>{slot ? `${formatDayLong(slot.start)}, ${formatTime(slot.start)}` : '—'}</b>
           </div>
-          <button className="primary big" type="submit" disabled={!slot || submitting}>
+          <button className="primary big" type="submit" disabled={!slot || !location || submitting}>
             {submitting ? 'Sending…' : 'Request this time'}
           </button>
         </div>
