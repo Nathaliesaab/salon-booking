@@ -575,3 +575,62 @@ button.danger-solid:hover:not(:disabled) { background: #8b3b46; border-color: #8
    than stretched across the full section width. */
 .where-grid { max-width: 46rem; margin-inline: auto; text-align: center; }
 .where-grid .tile .ico { margin-inline: auto; }
+
+/* ---------- motion ----------
+   Restrained on purpose: a fade and a few pixels of travel, once, the first
+   time something appears. Every rule here is switched off further down for
+   anyone who has asked for reduced motion. */
+
+/* Scroll reveal, driven by src/components/Reveal.jsx. */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.22, .61, .36, 1); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* The hero is above the fold, so it plays on load rather than on scroll. */
+@keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes arch-in { from { opacity: 0; transform: translateY(26px) scale(.97); } to { opacity: 1; transform: none; } }
+.hero .eyebrow, .hero h1, .hero .lead, .hero-actions, .hero-stats {
+  animation: rise .9s cubic-bezier(.22, .61, .36, 1) both;
+}
+.hero h1 { animation-delay: .08s; }
+.hero .lead { animation-delay: .16s; }
+.hero-actions { animation-delay: .24s; }
+.hero-stats { animation-delay: .32s; }
+.hero .arch { animation: arch-in 1.1s cubic-bezier(.22, .61, .36, 1) .1s both; }
+
+/* Hover life on the things that are actually clickable. */
+button, .btn-link { transition: background .2s ease, color .2s ease, border-color .2s ease, transform .18s ease, box-shadow .2s ease; }
+.btn-link:hover, button.primary:hover:not(:disabled), button.big:hover:not(:disabled) {
+  transform: translateY(-2px); box-shadow: var(--shadow);
+}
+.btn-link:active, button:active:not(:disabled) { transform: translateY(0); }
+
+.choice, .slot { transition: border-color .2s ease, background .2s ease, transform .18s ease; }
+.choice:hover:not(:disabled), .slot:hover:not(:disabled) { transform: translateY(-2px); }
+.choice[aria-pressed='true'], .slot[aria-pressed='true'] { transform: none; }
+
+.tile .ico, .salon-card .ico { transition: transform .3s ease; }
+.tile:hover .ico, .salon-card:hover .ico { transform: translateY(-2px) scale(1.06); }
+.salon-card { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.salon-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-2px); }
+
+/* A menu line lights up as a whole row, dots and all. */
+.menu-item { transition: color .2s ease; }
+.menu-item:hover .name, .menu-item:hover .price { color: var(--rose-deep); }
+.menu-item:hover .dots { border-bottom-color: var(--rose); }
+
+/* Nav and footer links get a rule that draws itself in. */
+.nav a:not(.cta), .footer a { position: relative; }
+.nav a:not(.cta)::after, .footer a::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -.25rem; height: 1px;
+  background: currentColor; transform: scaleX(0); transform-origin: right;
+  transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+}
+.nav a:not(.cta):hover::after, .footer a:hover::after { transform: scaleX(1); transform-origin: left; }
+
+/* The booking step bar slides its progress rather than snapping. */
+.step { transition: color .3s ease, border-color .3s ease, opacity .3s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+}

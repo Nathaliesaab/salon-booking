@@ -5,6 +5,7 @@ import { watchSchedule } from '../lib/backend'
 
 import { BRAND, CONTACT, LOCATIONS, POLICY } from '../lib/content'
 import Icon from '../components/Icon'
+import Reveal from '../components/Reveal'
 
 const { phone: PHONE, phoneHref: PHONE_HREF, email: EMAIL } = CONTACT
 
@@ -35,8 +36,8 @@ export default function ContactPage() {
       </div>
 
       <div className="contact-ways">
-        {WAYS.map((w) => (
-          <a className="way" key={w.label} href={w.href}>
+        {WAYS.map((w, i) => (
+          <Reveal as="a" className="way" key={w.label} href={w.href} delay={i * 80}>
             <span className="ico"><Icon name={w.ico} size={20} /></span>
             <span className="body">
               <span className="label">{w.label}</span>
@@ -44,7 +45,7 @@ export default function ContactPage() {
               <span className="note">{w.note}</span>
             </span>
             <span className="go" aria-hidden="true">→</span>
-          </a>
+          </Reveal>
         ))}
       </div>
 
@@ -56,8 +57,8 @@ export default function ContactPage() {
       </div>
 
       <div className="salon-cards">
-        {LOCATIONS.map((l) => (
-          <div className="salon-card" key={l.id}>
+        {LOCATIONS.map((l, i) => (
+          <Reveal className="salon-card" key={l.id} delay={i * 90}>
             <span className="ico"><Icon name="pin" size={20} /></span>
             <h3>{l.name}</h3>
             <p className="address">{l.address}</p>
@@ -66,7 +67,7 @@ export default function ContactPage() {
               {l.mapUrl && <a href={l.mapUrl} target="_blank" rel="noreferrer">Open in maps</a>}
               <Link to="/book">Book here</Link>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
       <p className="muted small" style={{ marginBottom: '1.6rem' }}>

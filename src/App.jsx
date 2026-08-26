@@ -1,4 +1,5 @@
-import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import BookingPage from './pages/BookingPage'
 import ContactPage from './pages/ContactPage'
@@ -10,6 +11,24 @@ import DemoBanner from './components/DemoBanner'
 import { BRAND, CONTACT, LOCATIONS } from './lib/content'
 
 /**
+ * A new page should start at its top. The router leaves the scroll position
+ * where it was, so tapping Book halfway down the landing page used to drop you
+ * into the middle of the booking form. Back and forward are left alone -- the
+ * browser restores those positions itself, and stealing them is worse.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  const navigationType = useNavigationType()
+
+  useEffect(() => {
+    if (navigationType === 'POP') return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname, navigationType])
+
+  return null
+}
+
+/**
  * The admin side carries its own navigation, so the guest header and footer
  * are left off there -- on a phone the sidebar becomes a bottom bar and would
  * otherwise sit on top of the footer.
@@ -19,6 +38,8 @@ function Site() {
 
   return (
     <>
+      <ScrollToTop />
+
       {!isAdmin && (
         <header className="topbar">
           <Link to="/" className="brand">

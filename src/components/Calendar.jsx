@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react'
 import { dateKey, isDayOpen } from '../lib/schedule'
 
-const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+// Weeks run Monday to Sunday here, matching the opening-hours list and the way
+// the week is read locally -- not the US Sunday-first grid.
+const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+/** Blank cells before the 1st, with Monday as column 0. */
+const leadingBlanks = (d) => (d.getDay() + 6) % 7
 
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1) }
 
@@ -16,7 +21,7 @@ export default function Calendar({ value, onChange, schedule, closedKeys = new S
   const first = startOfMonth(cursor)
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate()
   const cells = [
-    ...Array.from({ length: first.getDay() }, () => null),
+    ...Array.from({ length: leadingBlanks(first) }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => new Date(cursor.getFullYear(), cursor.getMonth(), i + 1)),
   ]
 

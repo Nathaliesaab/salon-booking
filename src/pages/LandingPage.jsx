@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import Stars from '../components/Stars'
+import Reveal from '../components/Reveal'
 import { BRAND, LOCATIONS, PHOTOS } from '../lib/content'
 import { watchReviews, watchServices } from '../lib/backend'
 
@@ -52,9 +53,9 @@ export default function LandingPage() {
       </section>
 
       <section className="split" id="about">
-        <figure className="split-photo">
+        <Reveal as="figure" className="split-photo">
           <img src={PHOTOS.studio} alt="Simona at work in the salon" loading="lazy" />
-        </figure>
+        </Reveal>
         <div className="split-copy">
           <div className="section-head left">
           <span className="eyebrow">The studio</span>
@@ -66,38 +67,38 @@ export default function LandingPage() {
             </p>
           </div>
           <ul className="promise-list">
-            {PROMISES.map((p) => (
-              <li key={p.title}>
+            {PROMISES.map((p, i) => (
+              <Reveal as="li" key={p.title} delay={i * 70}>
                 <span className="ico"><Icon name={p.ico} size={22} /></span>
                 <div>
                   <h3>{p.title}</h3>
                   <p>{p.text}</p>
                 </div>
-              </li>
+              </Reveal>
             ))}
           </ul>
         </div>
       </section>
 
       <section className="section" id="services">
-        <div className="section-head">
+        <Reveal className="section-head">
           <span className="eyebrow">Services</span>
           <h2>The menu</h2>
           <p>
             Prices are a starting point. Hair that is very long, very thick or heavily
             corrected may need more time — she will confirm before anything begins.
           </p>
-        </div>
+        </Reveal>
         <div className="menu-list">
-          {services.map((s) => (
-            <div className="menu-item" key={s.id}>
+          {services.map((s, i) => (
+            <Reveal className="menu-item" key={s.id} delay={Math.min(i, 6) * 60}>
               <span className="name">
                 {s.name}
                 <span className="dur">{s.durationMin} minutes</span>
               </span>
               <span className="dots" aria-hidden="true" />
               {s.price && <span className="price">{s.price}</span>}
-            </div>
+            </Reveal>
           ))}
           {services.length === 0 && <p className="muted" style={{ paddingTop: '1.4rem' }}>The service menu is being updated — please check back shortly.</p>}
         </div>
@@ -107,50 +108,50 @@ export default function LandingPage() {
       </section>
 
       <section className="section" id="gallery">
-        <div className="section-head">
+        <Reveal className="section-head">
           <span className="eyebrow">The work</span>
           <h2>Recent from the chair</h2>
-        </div>
+        </Reveal>
         <div className="gallery">
-          {PHOTOS.gallery.map((g) => (
-            <figure key={g.src}>
+          {PHOTOS.gallery.map((g, i) => (
+            <Reveal as="figure" key={g.src} delay={i * 60}>
               <img src={g.src} alt={g.alt} loading="lazy" />
-            </figure>
+            </Reveal>
           ))}
         </div>
       </section>
 
       <section className="section" id="where">
-        <div className="section-head">
+        <Reveal className="section-head">
           <span className="eyebrow">Where to find her</span>
           <h2>Two salons</h2>
           <p>Pick whichever is easier for you when you book — the available times are the same either way.</p>
-        </div>
+        </Reveal>
         <div className="grid where-grid">
-          {LOCATIONS.map((l) => (
-            <div className="tile" key={l.id}>
+          {LOCATIONS.map((l, i) => (
+            <Reveal className="tile" key={l.id} delay={i * 90}>
               <span className="ico"><Icon name="pin" /></span>
               <h3>{l.name}</h3>
               <p className="muted small">{l.address}</p>
               <p className="muted small">{l.days}</p>
               {l.mapUrl && <p className="small"><a href={l.mapUrl} target="_blank" rel="noreferrer">Open in maps</a></p>}
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       <section className="section tint" id="love">
-        <div className="section-head">
+        <Reveal className="section-head">
           <span className="eyebrow">Kind words</span>
           <h2>From the chair</h2>
-        </div>
+        </Reveal>
         <div className="grid">
-          {reviews.map((r) => (
-            <div className="quote" key={r.id}>
+          {reviews.map((r, i) => (
+            <Reveal className="quote" key={r.id} delay={i * 80}>
               <Stars value={r.rating} />
               <p>“{r.text}”</p>
               <span className="who">{r.name}</span>
-            </div>
+            </Reveal>
           ))}
           {reviews.length === 0 && <p className="muted center">No reviews yet — yours could be the first.</p>}
         </div>
